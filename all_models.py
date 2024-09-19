@@ -12,8 +12,27 @@ from prophet import Prophet
 from sklearn.model_selection import ParameterGrid
 from prophet.diagnostics import cross_validation, performance_metrics
 from itertools import product
+from statsmodels.tsa.stattools import adfuller
 
+
+# Check if the given time series is stationary using the Augmented Dickey-Fuller (ADF) test
+def check_stationarity(series):
+    
+    result = adfuller(series)
+    print('ADF Statistic:', result[0])
+    print('p-value:', result[1])
+    for key, value in result[4].items():
+        print('Critical Values:')
+        print(f'   {key}, {value}')
+        
+    if result[1] < 0.05:
+        print("The series is stationary.")
+    else:
+        print("The series is non-stationary.")
+
+#  Prepare the data for time series analysis
 def prepare_data(file_path):
+   
     # Load the dataset
     df = pd.read_csv(file_path)
 
@@ -32,9 +51,15 @@ def prepare_data(file_path):
     df.set_index('order_date', inplace=True)
     monthly_sales = df['total_price'].resample('M').sum()
 
+    # Check for stationarity
+    print("Checking stationarity using ADF Test:")
+    check_stationarity(monthly_sales)
+
     return monthly_sales
 
+# Evaluate the ARIMA model on the given time series data using time series cross-validation
 def evaluate_arima(series):
+
     p = range(0, 3)  # AR term
     d = range(0, 2)  # Differencing term
     q = range(0, 3)  # MA term
@@ -73,7 +98,9 @@ def evaluate_arima(series):
     
     return best_params, mape
 
+# Evaluate the SARIMA model on the given time series data using the auto_arima function
 def evaluate_sarima(series):
+
     train_size = int(len(series) * 0.8)
     train, test = series[:train_size], series[train_size:]
 
@@ -88,7 +115,9 @@ def evaluate_sarima(series):
     
     return model.summary(), mape
 
+# Evaluate the XGBoost model on the prepared data.
 def evaluate_xgboost(file_path):
+    
     df = prepare_data(file_path)
     monthly_sales = df.reset_index()
     monthly_sales['month'] = monthly_sales['order_date'].dt.month
@@ -116,7 +145,9 @@ def evaluate_xgboost(file_path):
     
     return best_params, mape
 
+# Evaluate the Prophet model on the prepared data
 def evaluate_prophet(file_path):
+    
     df = prepare_data(file_path)
     prophet_df = df.reset_index().rename(columns={'order_date': 'ds', 'total_price': 'y'})
 
@@ -142,43 +173,39 @@ def evaluate_prophet(file_path):
             y_pred = forecast['yhat']
             mse = mean_squared_error(y_true, y_pred)
             scores.append(mse)
-        avg_score = sum(scores) / len(scores)
+        avg_score = np.mean(scores)
         if avg_score < best_score:
             best_score = avg_score
             best_params = params
 
     final_model = Prophet(**best_params)
     final_model.fit(prophet_df)
-    future = final_model.make_future_dataframe(periods=12, freq='M')
+    forecast_steps = 12
+    future = final_model.make_future_dataframe(periods=forecast_steps, freq='M')
     forecast = final_model.predict(future)
     
-    y_true = prophet_df['y']
-    y_pred = forecast['yhat'][:len(prophet_df)]
+    y_true = prophet_df['y'][-forecast_steps:]
+    y_pred = forecast['yhat'][-forecast_steps:]
     mape = mean_absolute_percentage_error(y_true, y_pred)
     
     return best_params, mape
 
+# Compare the performance of ARIMA, SARIMA, XGBoost, and Prophet models 
 def compare_models(file_path):
-    print("Evaluating ARIMA...")
-    arima_params, arima_mape = evaluate_arima(prepare_data(file_path))
-    print("ARIMA Best Parameters:", arima_params)
-    print("ARIMA MAPE:", arima_mape)
-
-    print("\nEvaluating SARIMA...")
-    sarima_params, sarima_mape = evaluate_sarima(prepare_data(file_path))
-    print("SARIMA Summary:", sarima_params)
-    print("SARIMA MAPE:", sarima_mape)
-
-    print("\nEvaluating XGBoost...")
-    xgboost_params, xgboost_mape = evaluate_xgboost(file_path)
-    print("XGBoost Best Parameters:", xgboost_params)
-    print("XGBoost MAPE:", xgboost_mape)
-
-    print("\nEvaluating Prophet...")
+    
+    series = prepare_data(file_path)
+    
+    arima_params, arima_mape = evaluate_arima(series)
+    sarima_summary, sarima_mape = evaluate_sarima(series)
+    xgb_params, xgb_mape = evaluate_xgboost(file_path)
     prophet_params, prophet_mape = evaluate_prophet(file_path)
-    print("Prophet Best Parameters:", prophet_params)
-    print("Prophet MAPE:", prophet_mape)
+    
+    print("Model Comparison Results:")
+    print(f"ARIMA Model: Best Params: {arima_params}, MAPE: {arima_mape}")
+    print(f"SARIMA Model: Best Params: {sarima_summary}, MAPE: {sarima_mape}")
+    print(f"XGBoost Model: Best Params: {xgb_params}, MAPE: {xgb_mape}")
+    print(f"Prophet Model: Best Params: {prophet_params}, MAPE: {prophet_mape}")
 
-# Example usage
+# file_path
 file_path = 'pizza_sales.csv'
 compare_models(file_path)
