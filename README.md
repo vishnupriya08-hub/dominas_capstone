@@ -30,11 +30,11 @@ Data Cleaning: Remove any missing or inconsistent data entries, handle outliers,
 Exploratory Data Analysis (EDA): Analyze sales trends, seasonality, and patterns in the historical sales data. Visualize the data to identify significant features.
 Sales Prediction
 Feature Engineering: Create relevant features from the sales data, such as the day of the week, month, promotional periods, and holiday effects.
-Model Selection: Choose an appropriate time series forecasting model (e.g., ARIMA, SARIMA, Prophet, LSTM, Regression Model).
+Model Selection: Choose an appropriate time series forecasting model ( ARIMA, SARIMA, Prophet, Regression Model(XGBoosting).
 Model Training: Train the predictive model on the historical sales data.
 Model Evaluation: Use metric Mean Absolute Percentage Error (MAPE) to evaluate model performance.
 Purchase Order Generation
-Sales Forecasting: Predict pizza sales for the next week (or any chosen period) using the trained model.
+Sales Forecasting: Predict pizza sales for the next month using the trained model.
 Ingredient Calculation: Calculate the required quantities of each ingredient based on the predicted sales and the ingredient dataset.
 Purchase Order Creation: Generate a detailed purchase order listing the quantities of each ingredient needed for the predicted sales period.
 
@@ -46,7 +46,7 @@ Technical Tags
 Data Cleaning
 EDA
 Time Series Forecasting
-ARIMA/SARIMA/Prophet/LSTM/Regression Model
+ARIMA/SARIMA/Prophet/Regression Model(XGBoosting)
 Predictive Modeling
 Inventory Management
 Python
